@@ -486,61 +486,99 @@ app.get('/ad', (req: Request, res: Response) => {
     res.send(adPageHtml(token, valid, claimed));
 });
 
-// Ad watch endpoint (for the desktop app — no Discord token needed)
+// Ad watch endpoint (for the desktop app — generates a live token so the full ad page works)
 app.get('/ad/watch', (_req: Request, res: Response) => {
+    const token = crypto.randomBytes(16).toString('hex');
+    adTokens.set(token, { userId: 'app', expiresAt: Date.now() + AD_TOKEN_TTL, claimed: false });
+    setTimeout(() => adTokens.delete(token), AD_TOKEN_TTL + 5000);
+    // Serve the same adPageHtml but with a custom finish that signals the desktop app
+    const valid = true;
+    const claimed = false;
     const hasAdSense = ADSENSE_PUB_ID && !ADSENSE_PUB_ID.includes('REPLACE');
+    const clientId = ADSENSE_PUB_ID || '';
+    const slotId = ADSENSE_SLOT_ID || '';
     res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Advertisement</title>
+<title>Watch Ad – Spoky's Bot</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:32px;max-width:520px;width:100%;text-align:center}
-h1{font-size:1.4rem;margin-bottom:16px;color:#58a6ff}
-.ad-zone{background:#21262d;border:2px dashed #30363d;border-radius:8px;padding:20px;min-height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;color:#8b949e;font-size:.9rem}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;margin:0}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:32px;max-width:460px;width:100%;text-align:center}
+.logo{font-size:3rem;margin-bottom:8px}
+h1{font-size:1.5rem;font-weight:700;margin-bottom:4px;color:#f0f6fc}
+.subtitle{color:#8b949e;font-size:.9rem;margin-bottom:20px}
+.ad-zone{background:#21262d;border:2px dashed #30363d;border-radius:8px;padding:20px;min-height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;color:#8b949e;font-size:.9rem}
 #timer-bar{background:#21262d;border-radius:8px;height:8px;overflow:hidden;margin-bottom:12px}
-#timer-fill{background:#58a6ff;height:100%;width:100%;transition:width 1s linear}
-#timer-text{color:#8b949e;font-size:.9rem;margin-bottom:12px}
-#continue-btn{display:none;background:#238636;color:#fff;border:none;border-radius:8px;padding:14px 32px;font-size:1rem;font-weight:600;cursor:pointer;width:100%;transition:background .2s}
-#continue-btn:hover{background:#2ea043}
+#timer-fill{background-gradient:linear-gradient(90deg,#58a6ff,#79c0ff);background:#58a6ff;height:100%;width:100%;transition:width 1s linear}
+#timer-text{color:#8b949e;font-size:.9rem;margin-bottom:20px}
+#claim-btn{display:none;background:linear-gradient(135deg,#238636,#2ea043);color:#fff;border:none;border-radius:8px;padding:14px 32px;font-size:1.05rem;font-weight:700;cursor:pointer;width:100%;transition:transform .15s,box-shadow .15s}
+#claim-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(35,134,54,.4)}
+#claim-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+#reward-text{color:#8b949e;font-size:.8rem;margin-top:8px}
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>📺 Advertisement</h1>
+  <div class="logo">🎲</div>
+  <h1>Spoky's Bot</h1>
+  <p class="subtitle">Watch an ad to earn a free bonus roll!</p>
   <div class="ad-zone">
     ${hasAdSense ? `
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUB_ID}" crossorigin="anonymous"></script>
-    <ins class="adsbygoogle" style="display:block;width:100%;min-height:100px" data-ad-client="${ADSENSE_PUB_ID}" data-ad-slot="${ADSENSE_SLOT_ID}" data-ad-format="rectangle" data-full-width-responsive="true"></ins>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}" crossorigin="anonymous"></script>
+    <ins class="adsbygoogle" style="display:block;width:100%;min-height:160px" data-ad-client="${clientId}" data-ad-slot="${slotId}" data-ad-format="rectangle" data-full-width-responsive="true"></ins>
     <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
-    ` : `<div><div style="font-size:2rem">📺</div><div style="color:#58a6ff;font-weight:600;margin-top:8px">Ad Space</div><div style="font-size:.8rem;margin-top:4px">Support us by watching this ad</div></div>`}
+    ` : `<div><div style="font-size:2.5rem;margin-bottom:4px">📺</div><div style="color:#58a6ff;font-weight:600">Ad Space</div><div style="font-size:.8rem;margin-top:4px">Support us by watching this ad</div></div>`}
   </div>
   <div id="timer-bar"><div id="timer-fill"></div></div>
   <div id="timer-text">Please wait <span id="secs">15</span>s…</div>
-  <p style="color:#8b949e;font-size:.85rem;margin-bottom:12px">You can continue once the timer finishes.</p>
-  <button id="continue-btn" onclick="finish()">Continue →</button>
-  <script>
-    let secs = 15;
-    const fill = document.getElementById('timer-fill');
-    const text = document.getElementById('secs');
-    const btn  = document.getElementById('continue-btn');
-    const interval = setInterval(() => {
-      secs--;
-      if (fill) fill.style.width = (secs / 15 * 100) + '%';
-      if (text) text.textContent = secs;
-      if (secs <= 0) {
-        clearInterval(interval);
-        document.getElementById('timer-text').textContent = 'Ad complete!';
-        btn.style.display = 'block';
-      }
-    }, 1000);
-    function finish() {
+  <button id="claim-btn" onclick="claimAd('${token}')" disabled>⏳ Please wait…</button>
+  <div id="reward-text"></div>
+</div>
+<script>
+let secs = 15;
+const fill = document.getElementById('timer-fill');
+const text = document.getElementById('secs');
+const btn  = document.getElementById('claim-btn');
+const rtxt = document.getElementById('reward-text');
+const interval = setInterval(() => {
+  secs--;
+  if (fill) fill.style.width = (secs / 15 * 100) + '%';
+  if (text) text.textContent = secs;
+  if (secs <= 0) {
+    clearInterval(interval);
+    document.getElementById('timer-text').textContent = 'Ad complete!';
+    btn.textContent = '🎁 Claim Your Free Roll';
+    btn.disabled = false;
+  }
+}, 1000);
+async function claimAd(t) {
+  btn.disabled = true;
+  btn.textContent = '⏳ Claiming…';
+  try {
+    const r = await fetch('/ad/claim', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token:t}) });
+    const d = await r.json();
+    if (d.ok) {
+      rtxt.style.color = '#2ea043';
+      rtxt.textContent = '✅ Bonus roll claimed! Head back to Discord.';
+      btn.style.display = 'none';
       document.title = '_ad_done_';
+    } else {
+      rtxt.style.color = '#f85149';
+      rtxt.textContent = '❌ ' + (d.error || 'Something went wrong.');
+      btn.textContent = '🎁 Claim Your Free Roll';
+      btn.disabled = false;
     }
-  </script>
+  } catch(e) {
+    rtxt.style.color = '#f85149';
+    rtxt.textContent = '❌ Network error. Please try again.';
+    btn.textContent = '🎁 Claim Your Free Roll';
+    btn.disabled = false;
+  }
+}
+</script>
 </div>
 </body>
 </html>`);
