@@ -341,7 +341,7 @@ function adPageHtml(token: string, valid: boolean, alreadyClaimed = false): stri
   <div class="ad-zone" id="ad-zone">
     ${hasAdSense ? `
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUB_ID}" crossorigin="anonymous"></script>
-    <ins class="adsbygoogle" style="display:block;width:100%;min-height:100px" data-ad-client="${ADSENSE_PUB_ID}" data-ad-slot="${ADSENSE_SLOT_ID}" data-ad-format="rectangle" data-full-width-responsive="true"></ins>
+    <ins class="adsbygoogle" style="display:block;min-height:160px" data-ad-client="${ADSENSE_PUB_ID}" data-ad-slot="${ADSENSE_SLOT_ID}" data-ad-format="auto" data-full-width-responsive="true"></ins>
     <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
     ` : `<div style="text-align:center"><div style="font-size:2rem">📺</div><div style="color:#58a6ff;font-weight:600;margin-top:8px">Ad Space</div><div style="font-size:.8rem;margin-top:4px">AdSense will appear here once configured</div></div>`}
   </div>
@@ -528,7 +528,7 @@ h1{font-size:1.5rem;font-weight:700;margin-bottom:4px;color:#f0f6fc}
   <div class="ad-zone">
     ${hasAdSense ? `
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}" crossorigin="anonymous"></script>
-    <ins class="adsbygoogle" style="display:block;width:100%;min-height:160px" data-ad-client="${clientId}" data-ad-slot="${slotId}" data-ad-format="rectangle" data-full-width-responsive="true"></ins>
+    <ins class="adsbygoogle" style="display:block;min-height:160px" data-ad-client="${clientId}" data-ad-slot="${slotId}" data-ad-format="auto" data-full-width-responsive="true"></ins>
     <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
     ` : `<div><div style="font-size:2.5rem;margin-bottom:4px">📺</div><div style="color:#58a6ff;font-weight:600">Ad Space</div><div style="font-size:.8rem;margin-top:4px">Support us by watching this ad</div></div>`}
   </div>
